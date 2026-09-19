@@ -2,36 +2,39 @@ import requests
 from PIL import Image
 from transformers import pipeline
 
-def load_captioning_model():
-    # Loading the model once and reusing it is key for efficiency.
-    # We use BLIP base because it is lightweight, fast, and yields concise text.
-    return pipeline("image-to-text", model="Salesforce/blip-image-captioning-base")
+def load_image_captioner():
+    # Explicitly specify the recommended BLIP base model
+    model_name = "Salesforce/blip-image-captioning-base"
+    
+    # Initialize the pipeline for the image-to-text task
+    return pipeline("image-to-text", model=model_name)
 
-def get_image_description(model_pipeline, image_source):
-    # Handle both web URLs and local file paths
-    if image_source.startswith("http://") or image_source.startswith("https://"):
-        image = Image.open(requests.get(image_source, stream=True).raw)
+def describe_image(caption_pipeline, image_path_or_url):
+    # Fetch and open the image, converting it to RGB format
+    if image_path_or_url.startswith("http://") or image_path_or_url.startswith("https://"):
+        image = Image.open(requests.get(image_path_or_url, stream=True).raw).convert("RGB")
     else:
-        image = Image.open(image_source)
+        image = Image.open(image_path_or_url).convert("RGB")
         
-    # Convert to RGB to ensure compatibility with the model
-    image = image.convert("RGB")
+    # Run the pipeline on the image
+    result = caption_pipeline(image)
     
-    # Generate the brief description
-    output = model_pipeline(image)
+    # Extract the generated string from the pipeline output
+    description = result[0]["generated_text"]
+    return description
+
+def main():
+    print("Loading model (this may take a moment the first time)...")
+    caption_pipeline = load_image_captioner()
     
-    # Extract the generated text from the pipeline's output list
-    return output[0]["generated_text"]
+    # A sample image of two parrots from Hugging Face's documentation dataset
+    sample_image = "https://huggingface.co/datasets/Narsil/image_dummy/resolve/main/parrots.png"
+    
+    print("Generating description...")
+    description = describe_image(caption_pipeline, sample_image)
+    
+    print("\n--- Output ---")
+    print(f"Brief Description: {description}")
 
 if __name__ == "__main__":
-    # 1. Initialize the pipeline
-    print("Loading model...")
-    captioner = load_captioning_model()
-    
-    # 2. Provide an image URL (or local path)
-    sample_image_url = "https://huggingface.co/datasets/huggingface/documentation-images/resolve/main/cats.png"
-    
-    # 3. Generate and print the description
-    print("Analyzing image...")
-    description = get_image_description(captioner, sample_image_url)
-    print(f"Brief Description: {description}")
+    main()
