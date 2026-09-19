@@ -1,42 +1,37 @@
-import streamlit as st
+import requests
+from PIL import Image
 from transformers import pipeline
 
-@st.cache_resource
-def load_model():
-    # Explicitly specifying the default model from the notebook
-    model_name = "distilbert/distilbert-base-uncased-finetuned-sst-2-english"
-    return pipeline("sentiment-analysis", model=model_name)
+def load_captioning_model():
+    # Loading the model once and reusing it is key for efficiency.
+    # We use BLIP base because it is lightweight, fast, and yields concise text.
+    return pipeline("image-to-text", model="Salesforce/blip-image-captioning-base")
 
-def analyze_text(sentiment_pipeline, text):
-    # Processes the text and extracts the label and score
-    result = sentiment_pipeline(text)
-    label = result[0]["label"]
-    score = result[0]["score"]
-    return label, score
-
-def main():
-    st.title("Sentiment Analysis App")
-    st.write("Enter text below to determine if the sentiment is positive or negative.")
-
-    # Load the pipeline
-    sentiment_pipeline = load_model()
-
-    # Text input area with default text
-    default_text = "Deep Learning (DL) represents a highly promising approach to developing applications in Artificial Intelligence (AI)."
-    user_text = st.text_area("Input Text", value=default_text, height=150)
-
-    # Button to trigger analysis
-    if st.button("Analyze Sentiment"):
-        if user_text.strip():
-            # Call the helper function
-            label, score = analyze_text(sentiment_pipeline, user_text)
-            
-            # Display the results
-            st.subheader("Result:")
-            st.write(f"**Sentiment:** {label}")
-            st.write(f"**Confidence Score:** {score:.4f}")
-        else:
-            st.warning("Please enter some text to analyze.")
+def get_image_description(model_pipeline, image_source):
+    # Handle both web URLs and local file paths
+    if image_source.startswith("http://") or image_source.startswith("https://"):
+        image = Image.open(requests.get(image_source, stream=True).raw)
+    else:
+        image = Image.open(image_source)
+        
+    # Convert to RGB to ensure compatibility with the model
+    image = image.convert("RGB")
+    
+    # Generate the brief description
+    output = model_pipeline(image)
+    
+    # Extract the generated text from the pipeline's output list
+    return output[0]["generated_text"]
 
 if __name__ == "__main__":
-    main()
+    # 1. Initialize the pipeline
+    print("Loading model...")
+    captioner = load_captioning_model()
+    
+    # 2. Provide an image URL (or local path)
+    sample_image_url = "https://huggingface.co/datasets/huggingface/documentation-images/resolve/main/cats.png"
+    
+    # 3. Generate and print the description
+    print("Analyzing image...")
+    description = get_image_description(captioner, sample_image_url)
+    print(f"Brief Description: {description}")
