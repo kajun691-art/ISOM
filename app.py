@@ -15,7 +15,7 @@ uploaded_image = st.file_uploader("Upload an image",
 # Display image with spinner
 if uploaded_image is not None:
     with st.spinner("Loading image..."):
-        time.sleep(1)  # Simulate a delay
+        time.sleep(5)  # Simulate a delay
         image = Image.open(uploaded_image)
         # Fixed: use_container_width replaces the deprecated use_column_width
         st.image(image, caption="Uploaded Image", use_container_width=True)
