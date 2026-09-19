@@ -5,7 +5,7 @@ import requests
 API_URL = "https://api-inference.huggingface.co/models/Salesforce/blip-image-captioning-base"
 
 # Fetch the API token securely from Streamlit's secrets
-headers = {"Authorization": f"Bearer {st.secrets['HF_TOKEN']}"}
+headers = {"Authorization": f"Bearer {st.secrets['MoneySafe']}"}
 
 def describe_image(image_bytes):
     response = requests.post(API_URL, headers=headers, data=image_bytes)
