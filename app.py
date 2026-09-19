@@ -1,40 +1,35 @@
+import streamlit as st
 import requests
-from PIL import Image
-from transformers import pipeline
 
-def load_image_captioner():
-    # Explicitly specify the recommended BLIP base model
-    model_name = "Salesforce/blip-image-captioning-base"
-    
-    # Initialize the pipeline for the image-to-text task
-    return pipeline("image-to-text", model=model_name)
+# Hugging Face API URL for the BLIP model
+API_URL = "https://api-inference.huggingface.co/models/Salesforce/blip-image-captioning-base"
 
-def describe_image(caption_pipeline, image_path_or_url):
-    # Fetch and open the image, converting it to RGB format
-    if image_path_or_url.startswith("http://") or image_path_or_url.startswith("https://"):
-        image = Image.open(requests.get(image_path_or_url, stream=True).raw).convert("RGB")
-    else:
-        image = Image.open(image_path_or_url).convert("RGB")
-        
-    # Run the pipeline on the image
-    result = caption_pipeline(image)
-    
-    # Extract the generated string from the pipeline output
-    description = result[0]["generated_text"]
-    return description
+# Fetch the API token securely from Streamlit's secrets
+headers = {"Authorization": f"Bearer {st.secrets['HF_TOKEN']}"}
 
-def main():
-    print("Loading model (this may take a moment the first time)...")
-    caption_pipeline = load_image_captioner()
-    
-    # A sample image of two parrots from Hugging Face's documentation dataset
-    sample_image = "https://huggingface.co/datasets/Narsil/image_dummy/resolve/main/parrots.png"
-    
-    print("Generating description...")
-    description = describe_image(caption_pipeline, sample_image)
-    
-    print("\n--- Output ---")
-    print(f"Brief Description: {description}")
+def describe_image(image_bytes):
+    response = requests.post(API_URL, headers=headers, data=image_bytes)
+    return response.json()
 
-if __name__ == "__main__":
-    main()
+st.title("Image Captioning App")
+st.write("Upload an image to get a brief description.")
+
+uploaded_file = st.file_uploader("Choose an image...", type=["jpg", "jpeg", "png"])
+
+if uploaded_file is not None:
+    st.image(uploaded_file, caption="Uploaded Image")
+    
+    if st.button("Generate Description"):
+        with st.spinner("Analyzing image..."):
+            # Read the file directly as bytes
+            image_bytes = uploaded_file.getvalue()
+            
+            # Send to Hugging Face API
+            result = describe_image(image_bytes)
+            
+            # Verify if the API returned the expected result
+            if isinstance(result, list) and "generated_text" in result[0]:
+                st.success(f"**Description:** {result[0]['generated_text']}")
+            else:
+                # This will catch API rate limits or invalid tokens
+                st.error(f"API Error: {result}")
