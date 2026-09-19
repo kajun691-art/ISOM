@@ -1,35 +1,25 @@
 import streamlit as st
-import requests
+from PIL import Image
+import time
 
-# Hugging Face API URL for the BLIP model
-API_URL = "https://api-inference.huggingface.co/models/Salesforce/blip-image-captioning-base"
+# App title
+st.title("Streamlit Demo on Hugging Face")
 
-# Fetch the API token securely from Streamlit's secrets
-headers = {"Authorization": f"Bearer {st.secrets['MoneySafe']}"}
+# Write some text
+st.write("Welcome to a demo app showcasing basic Streamlit components!")
 
-def describe_image(image_bytes):
-    response = requests.post(API_URL, headers=headers, data=image_bytes)
-    return response.json()
+# File uploader for image and audio
+uploaded_image = st.file_uploader("Upload an image",
+                                  type=["jpg", "jpeg", "png"])
 
-st.title("Image Captioning App")
-st.write("Upload an image to get a brief description.")
+# Display image with spinner
+if uploaded_image is not None:
+    with st.spinner("Loading image..."):
+        time.sleep(1)  # Simulate a delay
+        image = Image.open(uploaded_image)
+        # Fixed: use_container_width replaces the deprecated use_column_width
+        st.image(image, caption="Uploaded Image", use_container_width=True)
 
-uploaded_file = st.file_uploader("Choose an image...", type=["jpg", "jpeg", "png"])
-
-if uploaded_file is not None:
-    st.image(uploaded_file, caption="Uploaded Image")
-    
-    if st.button("Generate Description"):
-        with st.spinner("Analyzing image..."):
-            # Read the file directly as bytes
-            image_bytes = uploaded_file.getvalue()
-            
-            # Send to Hugging Face API
-            result = describe_image(image_bytes)
-            
-            # Verify if the API returned the expected result
-            if isinstance(result, list) and "generated_text" in result[0]:
-                st.success(f"**Description:** {result[0]['generated_text']}")
-            else:
-                # This will catch API rate limits or invalid tokens
-                st.error(f"API Error: {result}")
+# Button interaction
+if st.button("Click Me"):
+    st.write("🎉 You clicked the button!")
