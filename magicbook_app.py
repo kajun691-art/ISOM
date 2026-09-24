@@ -66,34 +66,30 @@ def generate_image_caption(image: Image.Image, caption_pipeline) -> str:
 def generate_bedtime_story(caption: str, story_pipeline) -> str:
     """
     Expands an image caption into a child-friendly bedtime story (50-100 words).
-
-    Args:
-        caption (str): The descriptive caption of the image.
-        story_pipeline: The Hugging Face text generation pipeline.
-
-    Returns:
-        str: A magical story suitable for young children.
+    Includes specific decoding parameters to prevent text looping/repetition.
     """
+    # A slightly more structured prompt helps smaller models stay on track
     prompt = (
-        f"Write a cheerful, magical, imaginative bedtime story for a 6-year-old child "
-        f"in 60 to 90 words based on this scene: '{caption}'. "
-        f"Use friendly, simple words and a happy ending."
+        f"Write a magical and creative bedtime story for a 6-year-old child about this scene: '{caption}'. "
+        f"The story should have a fun beginning, a little adventure, and a happy bedtime ending."
     )
     
     try:
         output = story_pipeline(
             prompt, 
-            max_length=150, 
-            min_length=60, 
+            max_length=120, 
+            min_length=50, 
             do_sample=True, 
-            temperature=0.8,
+            temperature=0.7,             # Slightly lower temperature for better coherence
             top_k=50,
-            top_p=0.95
+            top_p=0.9,
+            repetition_penalty=1.5,      # PENALIZES the model for reusing words
+            no_repeat_ngram_size=3       # PREVENTS the model from repeating any 3-word phrase
         )
         return output[0]["generated_text"].strip()
     except Exception as e:
         logger.error(f"Error generating story: {e}")
-        raise RuntimeError("Failed to generate the story text.")
+        raise RuntimeError(f"Failed to generate the story text. Details: {str(e)}")
 
 
 def convert_text_to_audio(text: str) -> io.BytesIO:
