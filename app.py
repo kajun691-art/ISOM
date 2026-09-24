@@ -115,16 +115,18 @@ def main():
     """
     setup_ui()
 
-    # 1. Load Models
+# 1. Load Models
     with st.spinner("Waking up the magic storytelling engine (this may take a moment)..."):
         try:
             caption_pipe = load_caption_model()
             story_pipe = load_story_model()
         except Exception as e:
-            st.error("Uh oh! The magic engine couldn't wake up. Please refresh the page.")
+            # We are adding {e} here to see the exact technical failure on the screen!
+            st.error(f"Uh oh! The magic engine couldn't wake up. Details: {e}")
             logger.error(f"Model initialization failed: {e}")
             st.stop()
 
+    
     # 2. File Upload Interface
     uploaded_file = st.file_uploader(
         "Choose a photo (PNG, JPG, JPEG):", 
