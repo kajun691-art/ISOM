@@ -50,21 +50,17 @@ def load_story_model():
 def generate_image_caption(image: Image.Image, caption_pipeline) -> str:
     """
     Analyzes the uploaded image and returns a short text description.
-
-    Args:
-        image (PIL.Image.Image): The uploaded image.
-        caption_pipeline: The Hugging Face pipeline for image captioning.
-
-    Returns:
-        str: A generated text caption describing the image.
     """
     try:
-        # Some newer pipelines expect an empty text prompt for multimodal models
-        result = caption_pipeline(image, max_new_tokens=40)
+        # The 'image-text-to-text' pipeline requires a text prompt alongside the image.
+        # We provide a generic starting phrase ("A picture of") for the AI to complete.
+        result = caption_pipeline(images=image, text="A picture of", max_new_tokens=40)
+        
         return result[0]["generated_text"].strip()
     except Exception as e:
         logger.error(f"Error generating caption: {e}")
-        raise RuntimeError("Failed to generate a description for the image.")
+        # Including the exact error (e) in the message makes future debugging much easier!
+        raise RuntimeError(f"Failed to generate a description for the image. Details: {str(e)}")
 
 
 def generate_bedtime_story(caption: str, story_pipeline) -> str:
