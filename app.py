@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
 
 # Model Configuration Constants
 CAPTION_MODEL_NAME = "Salesforce/blip-image-captioning-base"
-STORY_MODEL_NAME = "google/flan-t5-base"
+STORY_MODEL_NAME = "ykumards/smollm2-135m-bedtime-stories"
 
 
 @st.cache_resource(show_spinner=False)
@@ -27,9 +27,6 @@ def load_caption_model():
     """
     Loads and caches the image captioning pipeline.
     Uses 'image-text-to-text' for compatibility with transformers v5+.
-
-    Returns:
-        transformers.pipelines.Pipeline: The loaded image captioning model.
     """
     logger.info(f"Loading caption model: {CAPTION_MODEL_NAME}")
     return pipeline("image-text-to-text", model=CAPTION_MODEL_NAME)
@@ -38,13 +35,11 @@ def load_caption_model():
 @st.cache_resource(show_spinner=False)
 def load_story_model():
     """
-    Loads and caches the text-to-text generation pipeline for story writing.
-
-    Returns:
-        transformers.pipelines.Pipeline: The loaded text generation model.
+    Loads and caches the text generation pipeline for story writing.
+    Updated to use 'text-generation' for SmolLM-based models.
     """
     logger.info(f"Loading story model: {STORY_MODEL_NAME}")
-    return pipeline("text2text-generation", model=STORY_MODEL_NAME)
+    return pipeline("text-generation", model=STORY_MODEL_NAME)
 
 
 def generate_image_caption(image: Image.Image, caption_pipeline) -> str:
@@ -55,36 +50,31 @@ def generate_image_caption(image: Image.Image, caption_pipeline) -> str:
         # The 'image-text-to-text' pipeline requires a text prompt alongside the image.
         # We provide a generic starting phrase ("A picture of") for the AI to complete.
         result = caption_pipeline(images=image, text="A picture of", max_new_tokens=40)
-        
         return result[0]["generated_text"].strip()
     except Exception as e:
         logger.error(f"Error generating caption: {e}")
-        # Including the exact error (e) in the message makes future debugging much easier!
         raise RuntimeError(f"Failed to generate a description for the image. Details: {str(e)}")
 
 
 def generate_bedtime_story(caption: str, story_pipeline) -> str:
     """
-    Expands an image caption into a child-friendly bedtime story (50-100 words).
-    Includes specific decoding parameters to prevent text looping/repetition.
+    Expands an image caption into a child-friendly bedtime story.
+    Adapted for a causal language model with decoding parameters to prevent looping.
     """
-    # A slightly more structured prompt helps smaller models stay on track
-    prompt = (
-        f"Write a magical and creative bedtime story for a 6-year-old child about this scene: '{caption}'. "
-        f"The story should have a fun beginning, a little adventure, and a happy bedtime ending."
-    )
+    # For a causal LM, we provide the beginning of the story as the prompt.
+    prompt = f"Once upon a time in a magical land, {caption}. "
     
     try:
         output = story_pipeline(
             prompt, 
-            max_length=120, 
-            min_length=50, 
+            max_new_tokens=100,          # Number of new words to generate
             do_sample=True, 
-            temperature=0.7,             # Slightly lower temperature for better coherence
+            temperature=0.7,             # Slightly focused temperature for better coherence
             top_k=50,
             top_p=0.9,
-            repetition_penalty=1.5,      # PENALIZES the model for reusing words
-            no_repeat_ngram_size=3       # PREVENTS the model from repeating any 3-word phrase
+            repetition_penalty=1.2,      # Penalizes the model for reusing words
+            no_repeat_ngram_size=3,      # Prevents the model from repeating any 3-word phrase
+            return_full_text=True        # Ensures the prompt is included in the output
         )
         return output[0]["generated_text"].strip()
     except Exception as e:
@@ -95,12 +85,6 @@ def generate_bedtime_story(caption: str, story_pipeline) -> str:
 def convert_text_to_audio(text: str) -> io.BytesIO:
     """
     Converts text to an MP3 audio stream using Google Text-to-Speech (gTTS).
-
-    Args:
-        text (str): The story text to be spoken.
-
-    Returns:
-        io.BytesIO: An in-memory buffer containing the MP3 audio data.
     """
     try:
         tts = gTTS(text=text, lang="en", slow=False)
