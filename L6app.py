@@ -14,7 +14,7 @@ def main():
     user_input = st.text_input("")
     if user_input:
         # Approach: AutoModel
-        model2 = AutoModelForSequenceClassification.from_pretrained("<<Model name>>",
+        model2 = AutoModelForSequenceClassification.from_pretrained("Happy_Face",
                                                                     num_labels=5)
         tokenizer = AutoTokenizer.from_pretrained("distilbert-base-uncased")
 
