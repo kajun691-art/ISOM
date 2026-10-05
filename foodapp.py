@@ -28,8 +28,8 @@ demo = gr.Interface(
     inputs=gr.Image(type="pil", label="Upload an Image"),
     outputs=gr.AnnotatedImage(label="Segmented Clothing & Parts"),
     title="Clothing & Human Parsing Segmentation",
-    description="Upload an image to segment clothing items, accessories, and body parts using the sayeed99/segformer_b3_clothes model.",
-    allow_flagging="never"
+    description="Upload an image to segment clothing items, accessories, and body parts using the sayeed99/segformer_b3_clothes model."
+    # Removed allow_flagging="never" to maintain compatibility with Gradio 4+
 )
 
 if __name__ == "__main__":
