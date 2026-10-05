@@ -1,3 +1,7 @@
-transformers<5.0.0
-streamlit
 torch
+torchvision
+transformers
+gradio
+pillow
+accelerate
+safetensors
